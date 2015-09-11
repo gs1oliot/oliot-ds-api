@@ -6,6 +6,7 @@
 var express = require('express')
   , routes = require('./routes')
   , http = require('http')
+  , auth = require("./models/auth")
   , path = require('path');
 
 var app = express();
@@ -27,6 +28,13 @@ if ('development' == app.get('env')) {
 }
 
 routes.configure(app);
+
+setInterval(function(){
+	auth.deleteExpiredAccessToken(function(err){
+		if(err)
+			console.log("delteExpiredAccessToken function error:"+err);
+	});
+}, 60000);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));

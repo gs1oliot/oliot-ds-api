@@ -91,6 +91,7 @@ model.grantTypeAllowed = function (clientId, grantType, callback) {
 };
 
 model.saveAccessToken = function (accessToken, clientId, expires, userId, callback) {
+  console.log(expires);
   pg.connect(connString, function (err, client, done) {
     if (err) return callback(err);
     client.query('INSERT INTO oauth_access_tokens(access_token, client_id, user_id, expires) ' +
@@ -127,3 +128,54 @@ model.getUser = function (username, password, callback) {
     });
   });
 };
+
+
+model.getUserbyUsername = function (username, callback) {
+  pg.connect(connString, function (err, client, done) {
+    if (err) return callback(err);
+    client.query('SELECT id FROM users WHERE username = $1', [username],
+    function (err, result) {
+      callback(err, result.rowCount ? result.rows[0] : false);
+      done();
+    });
+  });
+};
+
+
+model.saveUser = function (username, password, callback) {
+  pg.connect(connString, function (err, client, done) {
+    if (err) return callback(err);
+    client.query('INSERT INTO users(id, username, password) ' +
+			'VALUES (gen_random_uuid(), $1, $2)', [username, md5(password)],
+        function (err, result) {
+      callback(err);
+      done();
+    });
+  });
+};
+
+
+model.saveOauthClient = function (clientId, clientSecret, redirectUrl, callback) {
+  pg.connect(connString, function (err, client, done) {
+    if (err) return callback(err);
+    
+    client.query('INSERT INTO oauth_clients(client_id, client_secret, redirect_uri) ' +
+			'VALUES ($1, $2, $3)', [clientId, md5(clientSecret), redirectUrl],
+        function (err, result) {
+      callback(err);
+      done();
+    });
+  });
+};
+
+model.deleteExpiredAccessToken = function (callback){
+	pg.connect(connString, function (err, client, done) {
+		if (err) return callback(err);    
+		client.query('DELETE FROM oauth_access_tokens WHERE expires < (select localtimestamp)',
+		function (err, result) {
+			callback(err);
+			done();
+		});
+	});
+};
+
