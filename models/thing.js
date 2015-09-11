@@ -4,12 +4,14 @@
 var neo4j = require('neo4j');
 var errors = require('./errors');
 var User = require('./user');
+var config = require('../conf.json');
+var neo4j_url = "http://"+config.NEO_ID+":"+config.NEO_PW+"@"+config.NEO_ADDRESS;
 
 var db = new neo4j.GraphDatabase({
     // Support specifying database info via environment variables,
     // but assume Neo4j installation defaults.
     url: process.env['NEO4J_URL'] || process.env['GRAPHENEDB_URL'] ||
-        'http://neo4j:resl18519@localhost:7474',
+        neo4j_url,
     auth: process.env['NEO4J_AUTH'],
 });
 

@@ -1,0 +1,9 @@
+{
+	"PORT": 3000,
+	"PG_ID": "postgres",
+	"PG_PW": "resl18519",
+	"PG_ADDRESS": "localhost:5433/discovery_service",
+	"NEO_ID": "neo4j",
+	"NEO_PW": "resl18519",
+	"NEO_ADDRESS": "localhost:7474"
+}

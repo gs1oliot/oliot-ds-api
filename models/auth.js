@@ -17,7 +17,8 @@
 var pg = require('pg'),
 	md5 =  require('md5'),
 	model = module.exports,
-	connString = "postgres://postgres:resl18519@localhost:5433/discovery_service"
+	config = require('../conf.json'),
+	connString = "postgres://"+config.PG_ID+":"+config.PG_PW+ "@" + config.PG_ADDRESS
 
 /*
  * Required
