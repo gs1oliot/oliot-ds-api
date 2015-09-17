@@ -288,7 +288,7 @@ Thing.prototype.getFriendFamilyAndOthers = function (callback) {
         var others = [];
 
         for (var i = 0; i < results.length; i++) {
-        	console.log(results);
+        	//console.log(results);
             var username = results[i]['other.username']; //to be changed later
             var friends = results[i]['COUNT(rel1)'];
             var familys = results[i]['COUNT(rel2)'];
@@ -417,6 +417,46 @@ Thing.delall = function (callback) {
     });
 };
 
+Thing.isAuthority = function(username, gs1code, callback){
+	Thing.get(gs1code, function(err, thing){
+		if (err) {
+			//console.log(err);
+			return callback(err);
+		}
+		var operation = 'db/data/node/'+thing._node._id+'/traverse/node'
+		
+		var argJson = {
+			"order" : "breadth_first",
+			"return_filter" : {
+				"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+username+"\'",
+				"language" : "javascript"
+			},
+			"prune_evaluator" : {
+				"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+username+"\'",
+				"language" : "javascript"
+			},
+			"uniqueness" : "node_global",
+			"relationships" : {
+				"direction" : "out",
+				"type" : "familyship"
+			},
+			"max_depth" : 7
+		}
+		var args = JSON.stringify(argJson);
+					
+		rest.postOperation('http://'+config.NEO_ADDRESS, operation, args, function(err, results){
+			if (err){
+				console.log(err);
+				return callback(err);
+			}
+			//console.log(results.length);
+			if(results.length>0){
+				return callback(null, {result: "success"});
+			}
+			return callback(null, {result: "fail"});
+		});
+	});
+};
 
 // Static initialization:
 

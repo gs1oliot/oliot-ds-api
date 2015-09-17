@@ -5,6 +5,8 @@ var bodyParser = require('body-parser'),
 	auth = require('./models/auth'),
 	User = require('./models/user'),
 	Thing = require('./models/thing'),
+	rest = require('./rest')
+	config = require('./conf.json');
 	//connString = "postgres://postgres:resl18519@localhost:5433/discovery_service"
 
 
@@ -272,6 +274,72 @@ exports.configure = function (app) {
 	});
 	
 	
+	app.post('/data/register', app.oauth.authorise(), function(req, res){
+		Thing.isAuthority(req.body.username, req.body.gs1code, function(err, results){
+			if (err){
+				console.log(err);
+				return res.send({error: err});
+			}
+			if(results.result == "fail"){
+				return res.send(results);
+			}
+			console.log(results);
+			return res.send(results);
+		});
+		/*Thing.get(req.body.gs1code, function(err, thing){
+			if (err) {
+				//console.log(err);
+				return res.send({error: err});
+			}
+			var operation = 'db/data/node/'+thing._node._id+'/traverse/node'
+			
+			var argJson = {
+				"order" : "breadth_first",
+				"return_filter" : {
+					"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+req.body.username+"\'",
+					"language" : "javascript"
+				},
+				"prune_evaluator" : {
+					"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+req.body.username+"\'",
+					"language" : "javascript"
+				},
+				"uniqueness" : "node_global",
+				"relationships" : {
+					"direction" : "out",
+					"type" : "familyship"
+				},
+				"max_depth" : 7
+			}
+			var args = JSON.stringify(argJson);
+						
+			rest.postOperation('http://'+config.NEO_ADDRESS, operation, args, function(err, results){
+				if (err){
+					console.log(err);
+					return res.send({error: err});
+				}
+				//console.log(results.length);
+				if(results.length>0){
+					return res.send({result: "success"});
+				}
+				return res.send({result:"fail"});
+			});
+		});*/
+	});
+
+	
+	app.get('/data/register', app.oauth.authorise(), function(req, res){
+		rest.getOperation('http://'+config.NEO_ADDRESS, 'user/neo4j', null, function(err, results){
+			if (err){
+				console.log(err);
+				return res.send({error: err});
+			}
+			console.log(results);
+			res.send(results);
+		});
+	});
+	
+	
+	
 	app.post('/signup', function (req, res){
 		
 		auth.getUserbyUsername(req.body.username, function(err1, result){
@@ -325,5 +393,5 @@ exports.configure = function (app) {
 			});
 		});*/
 	});
-	
+
 };
