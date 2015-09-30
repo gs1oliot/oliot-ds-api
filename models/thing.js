@@ -309,6 +309,41 @@ Thing.prototype.getFriendFamilyAndOthers = function (callback) {
     });
 };
 
+
+Thing.prototype.isNeighbor = function(username, callback){
+    // Query all things and whether we follow each one or not:
+    var query = [
+        'MATCH (thing:Thing {gs1code: {thisGs1code}})',
+        'MATCH (other:User {username: {thisUsername}})',
+        'OPTIONAL MATCH (thing) -[rel1:friendship]-> (other)',
+        'OPTIONAL MATCH (thing) -[rel2:familyship]-> (other)',
+        'OPTIONAL MATCH (thing) <-[rel3:ownership]- (other)',
+        'RETURN COUNT(rel1), COUNT(rel2), COUNT(rel3)', // COUNT(rel) is a hack for 1 or 0
+    ].join('\n')
+
+    var params = {
+        thisGs1code: this.gs1code,
+        thisUsername: username
+    };
+
+    //var thing = this;
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err, results) {
+        if (err) return callback(err);
+
+        if (results.length != 1) {
+            err = new Error('This cannot exist');
+            return callback(err);
+        }
+        if (results[0]['COUNT(rel1)'] || results[0]['COUNT(rel2)'] || results[0]['COUNT(rel3)'])
+        	callback(null, {result:"success"});
+        callback(null, {result:"fail"});
+    });
+}
+
+
 // Static methods:
 
 Thing.get = function (gs1code, callback) {
@@ -423,40 +458,50 @@ Thing.isAuthority = function(username, gs1code, callback){
 			//console.log(err);
 			return callback(err);
 		}
-		var operation = 'db/data/node/'+thing._node._id+'/traverse/node'
-		
-		var argJson = {
-			"order" : "breadth_first",
-			"return_filter" : {
-				"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+username+"\'",
-				"language" : "javascript"
-			},
-			"prune_evaluator" : {
-				"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+username+"\'",
-				"language" : "javascript"
-			},
-			"uniqueness" : "node_global",
-			"relationships" : {
-				"direction" : "out",
-				"type" : "familyship"
-			},
-			"max_depth" : 7
-		}
-		var args = JSON.stringify(argJson);
-					
-		rest.postOperation('http://'+config.NEO_ADDRESS, operation, args, function(err, results){
-			if (err){
-				console.log(err);
+		thing.isNeighbor(username, function(err, result){
+			if(err)
 				return callback(err);
-			}
-			//console.log(results.length);
-			if(results.length>0){
+			if(result.result == 'success')
 				return callback(null, {result: "success"});
+
+			var operation = 'db/data/node/'+thing._node._id+'/traverse/node'
+			
+			var argJson = {
+				"order" : "breadth_first",
+				"return_filter" : {
+					"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+username+"\'",
+					"language" : "javascript"
+				},
+				"prune_evaluator" : {
+					"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+username+"\'",
+					"language" : "javascript"
+				},
+				"uniqueness" : "node_global",
+				"relationships" : {
+					"direction" : "out",
+					"type" : "familyship"
+				},
+				"max_depth" : 7
 			}
-			return callback(null, {result: "fail"});
+			var args = JSON.stringify(argJson);
+						
+			rest.postOperation('http://'+config.NEO_ADDRESS, operation, args, function(err, results){
+				if (err){
+					console.log(err);
+					return callback(err);
+				}
+				//console.log(results.length);
+				if(results.length>0){
+					return callback(null, {result: "success"});
+				}
+				return callback(null, {result: "fail"});
+			});
 		});
 	});
 };
+
+
+
 
 // Static initialization:
 

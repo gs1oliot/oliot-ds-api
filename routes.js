@@ -6,9 +6,13 @@ var bodyParser = require('body-parser'),
 	User = require('./models/user'),
 	Thing = require('./models/thing'),
 	rest = require('./rest')
-	config = require('./conf.json');
+	config = require('./conf.json'),
+	Redis = require('ioredis'),
+	maindb = require('./models/maindb');
 	//connString = "postgres://postgres:resl18519@localhost:5433/discovery_service"
 
+var redis = new Redis();	
+var mongoUrl = 'mongodb://localhost:27017/discoveryservice';	
 
 exports.configure = function (app) {	
 	 
@@ -283,8 +287,22 @@ exports.configure = function (app) {
 			if(results.result == "fail"){
 				return res.send(results);
 			}
-			console.log(results);
-			return res.send(results);
+			redis.get(req.body.gs1code, function(err,result){
+				if(result != null){
+					console.log(result);
+					//do something more (send something to EPCIS)
+				}
+				redis.set(req.body.gs1code, JSON.stringify(req.body.data));
+				maindb.insertData({gs1code: req.body.gs1code, url: req.body.data.url, timestamp: new Date(req.body.data.timestamp), location: req.body.data.location }, function(err, result){
+					if (err){
+						console.log(err);
+						return res.send({error: err});
+					}
+					return res.send(result);
+				});	
+			});
+			//console.log(results);
+			//return res.send(results);
 		});
 		/*Thing.get(req.body.gs1code, function(err, thing){
 			if (err) {
