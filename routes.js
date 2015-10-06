@@ -8,7 +8,8 @@ var bodyParser = require('body-parser'),
 	rest = require('./rest')
 	config = require('./conf.json'),
 	Redis = require('ioredis'),
-	maindb = require('./models/maindb');
+	maindb = require('./models/maindb'),
+	qs = require('querystring');
 	//connString = "postgres://postgres:resl18519@localhost:5433/discovery_service"
 
 var redis = new Redis();	
@@ -292,8 +293,20 @@ exports.configure = function (app) {
 					console.log(result);
 					//do something more (send something to EPCIS)
 				}
-				redis.set(req.body.gs1code, JSON.stringify(req.body.data));
-				maindb.insertData({gs1code: req.body.gs1code, url: req.body.data.url, timestamp: new Date(req.body.data.timestamp), location: req.body.data.location }, function(err, result){
+				var storedData = {
+					gs1code: req.body.gs1code,
+					url: req.body.data.url,
+					timestamp: new Date(req.body.data.timestamp),
+					location: {
+						type:"Point",
+						coordinates: req.body.data.location
+					}
+				}
+				
+				redis.set(req.body.gs1code, JSON.stringify(storedData));
+				//var lon = req.body.data.location[0];
+				
+				maindb.insertData(storedData, function(err, result){
 					if (err){
 						console.log(err);
 						return res.send({error: err});
@@ -304,48 +317,10 @@ exports.configure = function (app) {
 			//console.log(results);
 			//return res.send(results);
 		});
-		/*Thing.get(req.body.gs1code, function(err, thing){
-			if (err) {
-				//console.log(err);
-				return res.send({error: err});
-			}
-			var operation = 'db/data/node/'+thing._node._id+'/traverse/node'
-			
-			var argJson = {
-				"order" : "breadth_first",
-				"return_filter" : {
-					"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+req.body.username+"\'",
-					"language" : "javascript"
-				},
-				"prune_evaluator" : {
-					"body" : "position.endNode().hasProperty(\'username\')&&position.endNode().getProperty(\'username\') == \'"+req.body.username+"\'",
-					"language" : "javascript"
-				},
-				"uniqueness" : "node_global",
-				"relationships" : {
-					"direction" : "out",
-					"type" : "familyship"
-				},
-				"max_depth" : 7
-			}
-			var args = JSON.stringify(argJson);
-						
-			rest.postOperation('http://'+config.NEO_ADDRESS, operation, args, function(err, results){
-				if (err){
-					console.log(err);
-					return res.send({error: err});
-				}
-				//console.log(results.length);
-				if(results.length>0){
-					return res.send({result: "success"});
-				}
-				return res.send({result:"fail"});
-			});
-		});*/
 	});
 
 	
-	app.get('/data/register', app.oauth.authorise(), function(req, res){
+	app.get('/data/register', app.oauth.authorise(), function(req, res){ //this one is temporal
 		rest.getOperation('http://'+config.NEO_ADDRESS, 'user/neo4j', null, function(err, results){
 			if (err){
 				console.log(err);
@@ -356,7 +331,39 @@ exports.configure = function (app) {
 		});
 	});
 	
-	
+
+	app.get('/:gs1code/epcis?:queryStr', function(req, res){
+		//var jsonWhere = JSON.parse(req.params.where);
+		//console.log(jsonWhere);
+		//console.log(Number(range));
+		//var jsonQuery = qs.parse(req.query);
+		//console.log(req.params.gs1code);
+		//console.log(jsonQuery);
+		var from = null;
+		var to = null;
+		var where = null;
+		var range = null;
+		
+		if(req.query.from)
+			from = req.query.from;
+		if(req.query.to)
+			to = req.query.to;
+		if(req.query.where)
+			where= JSON.parse(req.query.where);
+		if(req.query.range)
+			range = Number(req.query.range);
+		
+		//console.log(jsonWhere);
+		//console.log(jsonRange);
+		maindb.getData(req.params.gs1code, from, to, where, range, function(err, results){
+			if (err){
+				console.log(err);
+				return res.send({error: err});
+			}
+			console.log(results);
+			res.send(results);
+		});
+	});
 	
 	app.post('/signup', function (req, res){
 		
@@ -411,5 +418,8 @@ exports.configure = function (app) {
 			});
 		});*/
 	});
+	
+	
+	
 
 };
