@@ -295,6 +295,7 @@ exports.configure = function (app) {
 				var storedData = {
 					gs1code: req.body.gs1code,
 					url: req.body.data.url,
+					timestamp: new Date(req.body.data.timestamp),
 					location: {
 						type:"Point",
 						coordinates: req.body.data.location
