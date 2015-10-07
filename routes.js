@@ -13,7 +13,6 @@ var bodyParser = require('body-parser'),
 	//connString = "postgres://postgres:resl18519@localhost:5433/discovery_service"
 
 var redis = new Redis();	
-var mongoUrl = 'mongodb://localhost:27017/discoveryservice';	
 
 exports.configure = function (app) {	
 	 
@@ -296,14 +295,14 @@ exports.configure = function (app) {
 				var storedData = {
 					gs1code: req.body.gs1code,
 					url: req.body.data.url,
-					timestamp: new Date(req.body.data.timestamp),
 					location: {
 						type:"Point",
 						coordinates: req.body.data.location
 					}
 				}
-				
+
 				redis.set(req.body.gs1code, JSON.stringify(storedData));
+
 				//var lon = req.body.data.location[0];
 				
 				maindb.insertData(storedData, function(err, result){

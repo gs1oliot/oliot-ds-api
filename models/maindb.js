@@ -1,8 +1,9 @@
 var MongoClient = require('mongodb').MongoClient
-  , assert = require('assert');
+  , assert = require('assert')
+  , config = require('../conf.json');
 
 // Connection URL
-var url = 'mongodb://localhost:27017/discveryservice';
+var url = 'mongodb://'+config.MONGO_ADDRESS+'/discoveryservice'
 
 
 module.exports.insertData=function(data, callback) {
